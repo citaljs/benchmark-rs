@@ -1,5 +1,1 @@
-#![feature(test)]
-
-extern crate test;
-
-mod note_event_store;
+pub mod note_event_store;

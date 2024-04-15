@@ -3,7 +3,7 @@ use super::{
     event::{NoteEvent, NoteEventUpdate},
 };
 
-struct VecNoteEventStore {
+pub struct VecNoteEventStore {
     store: Vec<NoteEvent>,
 }
 
@@ -16,6 +16,10 @@ impl VecNoteEventStore {
 impl NoteEventStore for VecNoteEventStore {
     fn add_event(&mut self, event: NoteEvent) {
         self.store.push(event);
+    }
+
+    fn add_events(&mut self, events: Vec<NoteEvent>) {
+        self.store.extend(events);
     }
 
     fn update_event(&mut self, event: NoteEventUpdate) {
@@ -32,8 +36,18 @@ impl NoteEventStore for VecNoteEventStore {
         }
     }
 
+    fn update_events(&mut self, events: Vec<NoteEventUpdate>) {
+        for event in events {
+            self.update_event(event);
+        }
+    }
+
     fn delete_event(&mut self, id: &str) {
         self.store.retain(|e| e.id != id);
+    }
+
+    fn delete_events(&mut self, ids: Vec<&str>) {
+        self.store.retain(|e| !ids.contains(&e.id.as_str()));
     }
 
     fn get_event(&self, id: &str) -> Option<&NoteEvent> {
@@ -50,318 +64,79 @@ impl NoteEventStore for VecNoteEventStore {
 
 #[cfg(test)]
 mod tests {
+    use crate::note_event_store::test_util;
+
     use super::*;
-    use test::Bencher;
 
     #[test]
     fn test_add_event() {
         let mut store = VecNoteEventStore::new();
-
-        store.add_event(NoteEvent {
-            id: "0".to_string(),
-            start_ticks: 0,
-            end_ticks: 10,
-            note_number: 60,
-            velocity: 100,
-        });
-
-        let event = store.get_event("0").unwrap();
-
-        assert_eq!(event.id, "0");
-        assert_eq!(event.start_ticks, 0);
-        assert_eq!(event.end_ticks, 10);
-        assert_eq!(event.note_number, 60);
-        assert_eq!(event.velocity, 100);
+        test_util::add_event(&mut store);
     }
 
-    #[bench]
-    fn bench_add_event(b: &mut Bencher) {
+    #[test]
+    fn test_add_events() {
         let mut store = VecNoteEventStore::new();
-
-        b.iter(|| {
-            store.add_event(NoteEvent {
-                id: "0".to_string(),
-                start_ticks: 0,
-                end_ticks: 10,
-                note_number: 60,
-                velocity: 100,
-            })
-        });
+        test_util::add_events(&mut store);
     }
 
     #[test]
     fn test_update_event_all_fields() {
         let mut store = VecNoteEventStore::new();
-        store.add_event(NoteEvent {
-            id: "0".to_string(),
-            start_ticks: 0,
-            end_ticks: 10,
-            note_number: 60,
-            velocity: 100,
-        });
-
-        store.update_event(NoteEventUpdate {
-            id: "0".to_string(),
-            start_ticks: Some(5),
-            end_ticks: Some(15),
-            note_number: Some(70),
-            velocity: Some(90),
-        });
-
-        let event = store.get_event("0").unwrap();
-
-        assert_eq!(event.id, "0");
-        assert_eq!(event.start_ticks, 5);
-        assert_eq!(event.end_ticks, 15);
-        assert_eq!(event.note_number, 70);
-        assert_eq!(event.velocity, 90);
+        test_util::update_event_all_fields(&mut store);
     }
 
     #[test]
     fn test_update_event_partial() {
         let mut store = VecNoteEventStore::new();
-        store.add_event(NoteEvent {
-            id: "0".to_string(),
-            start_ticks: 0,
-            end_ticks: 10,
-            note_number: 60,
-            velocity: 100,
-        });
-
-        store.update_event(NoteEventUpdate {
-            id: "0".to_string(),
-            start_ticks: Some(5),
-            end_ticks: None,
-            note_number: None,
-            velocity: Some(90),
-        });
-
-        let event = store.get_event("0").unwrap();
-
-        assert_eq!(event.id, "0");
-        assert_eq!(event.start_ticks, 5);
-        assert_eq!(event.end_ticks, 10);
-        assert_eq!(event.note_number, 60);
-        assert_eq!(event.velocity, 90);
+        test_util::update_event_partial(&mut store);
     }
 
     #[test]
     fn test_update_event_all_none() {
         let mut store = VecNoteEventStore::new();
-        store.add_event(NoteEvent {
-            id: "0".to_string(),
-            start_ticks: 0,
-            end_ticks: 10,
-            note_number: 60,
-            velocity: 100,
-        });
-
-        store.update_event(NoteEventUpdate {
-            id: "0".to_string(),
-            start_ticks: None,
-            end_ticks: None,
-            note_number: None,
-            velocity: None,
-        });
-
-        let event = store.get_event("0").unwrap();
-
-        assert_eq!(event.id, "0");
-        assert_eq!(event.start_ticks, 0);
-        assert_eq!(event.end_ticks, 10);
-        assert_eq!(event.note_number, 60);
-        assert_eq!(event.velocity, 100);
+        test_util::update_event_all_none(&mut store);
     }
 
     #[test]
     fn test_update_event_not_found() {
         let mut store = VecNoteEventStore::new();
-
-        store.update_event(NoteEventUpdate {
-            id: "0".to_string(),
-            start_ticks: Some(5),
-            end_ticks: Some(15),
-            note_number: Some(70),
-            velocity: Some(90),
-        });
-
-        assert!(store.get_event("0").is_none());
+        test_util::update_event_not_found(&mut store);
     }
 
-    #[bench]
-    fn bench_update_event(b: &mut Bencher) {
+    #[test]
+    fn test_update_events() {
         let mut store = VecNoteEventStore::new();
-        store.add_event(NoteEvent {
-            id: "0".to_string(),
-            start_ticks: 0,
-            end_ticks: 10,
-            note_number: 60,
-            velocity: 100,
-        });
-
-        b.iter(|| {
-            store.update_event(NoteEventUpdate {
-                id: "0".to_string(),
-                start_ticks: Some(5),
-                end_ticks: Some(15),
-                note_number: Some(70),
-                velocity: Some(90),
-            })
-        });
+        test_util::update_events(&mut store);
     }
 
     #[test]
     fn test_delete_event() {
         let mut store = VecNoteEventStore::new();
-        store.add_event(NoteEvent {
-            id: "0".to_string(),
-            start_ticks: 0,
-            end_ticks: 10,
-            note_number: 60,
-            velocity: 100,
-        });
-
-        store.delete_event("0");
-
-        assert!(store.get_event("0").is_none());
+        test_util::delete_event(&mut store);
     }
 
     #[test]
     fn test_delete_event_not_found() {
         let mut store = VecNoteEventStore::new();
-
-        store.delete_event("0");
-
-        assert!(store.get_event("0").is_none());
+        test_util::delete_event_not_found(&mut store);
     }
 
-    #[bench]
-    fn bench_delete_event(b: &mut Bencher) {
+    #[test]
+    fn test_delete_events() {
         let mut store = VecNoteEventStore::new();
-        store.add_event(NoteEvent {
-            id: "0".to_string(),
-            start_ticks: 0,
-            end_ticks: 10,
-            note_number: 60,
-            velocity: 100,
-        });
-
-        b.iter(|| store.delete_event("0"));
+        test_util::delete_events(&mut store);
     }
 
     #[test]
     fn test_get_event() {
         let mut store = VecNoteEventStore::new();
-        store.add_event(NoteEvent {
-            id: "0".to_string(),
-            start_ticks: 0,
-            end_ticks: 10,
-            note_number: 60,
-            velocity: 100,
-        });
-
-        let event = store.get_event("0").unwrap();
-
-        assert_eq!(event.id, "0");
-        assert_eq!(event.start_ticks, 0);
-        assert_eq!(event.end_ticks, 10);
-        assert_eq!(event.note_number, 60);
-        assert_eq!(event.velocity, 100);
-    }
-
-    #[bench]
-    fn bench_get_event(b: &mut Bencher) {
-        let mut store = VecNoteEventStore::new();
-        store.add_event(NoteEvent {
-            id: "0".to_string(),
-            start_ticks: 0,
-            end_ticks: 10,
-            note_number: 60,
-            velocity: 100,
-        });
-
-        b.iter(|| store.get_event("0"));
+        test_util::get_event(&mut store);
     }
 
     #[test]
     fn test_get_events_by_range() {
         let mut store = VecNoteEventStore::new();
-
-        store.add_event(NoteEvent {
-            id: "0".to_string(),
-            start_ticks: 0,
-            end_ticks: 4,
-            note_number: 60,
-            velocity: 100,
-        });
-
-        store.add_event(NoteEvent {
-            id: "1".to_string(),
-            start_ticks: 0,
-            end_ticks: 5,
-            note_number: 60,
-            velocity: 100,
-        });
-
-        store.add_event(NoteEvent {
-            id: "2".to_string(),
-            start_ticks: 10,
-            end_ticks: 15,
-            note_number: 60,
-            velocity: 100,
-        });
-
-        store.add_event(NoteEvent {
-            id: "3".to_string(),
-            start_ticks: 11,
-            end_ticks: 15,
-            note_number: 60,
-            velocity: 100,
-        });
-
-        let events = store.get_events_by_range(5, 10);
-
-        assert_eq!(events.len(), 2);
-        assert_eq!(events[0].id, "1");
-        assert_eq!(events[1].id, "2");
-    }
-
-    #[bench]
-    fn bench_get_events_by_range(b: &mut Bencher) {
-        let mut store = VecNoteEventStore::new();
-
-        store.add_event(NoteEvent {
-            id: "0".to_string(),
-            start_ticks: 0,
-            end_ticks: 4,
-            note_number: 60,
-            velocity: 100,
-        });
-
-        store.add_event(NoteEvent {
-            id: "1".to_string(),
-            start_ticks: 0,
-            end_ticks: 5,
-            note_number: 60,
-            velocity: 100,
-        });
-
-        store.add_event(NoteEvent {
-            id: "2".to_string(),
-            start_ticks: 10,
-            end_ticks: 15,
-            note_number: 60,
-            velocity: 100,
-        });
-
-        store.add_event(NoteEvent {
-            id: "3".to_string(),
-            start_ticks: 11,
-            end_ticks: 15,
-            note_number: 60,
-            velocity: 100,
-        });
-
-        b.iter(|| store.get_events_by_range(5, 10));
+        test_util::get_events_by_range(&mut store);
     }
 }
