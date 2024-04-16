@@ -298,9 +298,28 @@ pub fn get_events_by_range(store: &mut impl NoteEventStore) {
         velocity: 100,
     });
 
-    let events = store.get_events_by_range(5, 10);
+    store.add_event(NoteEvent {
+        id: "4".to_string(),
+        start_ticks: 0,
+        end_ticks: 15,
+        note_number: 60,
+        velocity: 100,
+    });
 
-    assert_eq!(events.len(), 2);
+    store.add_event(NoteEvent {
+        id: "5".to_string(),
+        start_ticks: 7,
+        end_ticks: 8,
+        note_number: 60,
+        velocity: 100,
+    });
+
+    let mut events = store.get_events_by_range(5, 10);
+    events.sort_by(|a, b| a.id.cmp(&b.id));
+
+    assert_eq!(events.len(), 4);
     assert_eq!(events[0].id, "1");
     assert_eq!(events[1].id, "2");
+    assert_eq!(events[2].id, "4");
+    assert_eq!(events[3].id, "5");
 }

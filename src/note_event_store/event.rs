@@ -1,3 +1,4 @@
+#[derive(Clone)]
 pub struct NoteEvent {
     pub id: String,
     pub start_ticks: u64,
