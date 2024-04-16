@@ -23,16 +23,19 @@ impl NoteEventStore for VecNoteEventStore {
     }
 
     fn update_event(&mut self, event: NoteEventUpdate) {
-        if let Some(event_index) = self.store.iter().position(|e| e.id == event.id) {
-            let old_event = &self.store[event_index];
-            let new_event = NoteEvent {
-                id: old_event.id.clone(),
-                start_ticks: event.start_ticks.unwrap_or(old_event.start_ticks),
-                end_ticks: event.end_ticks.unwrap_or(old_event.end_ticks),
-                note_number: event.note_number.unwrap_or(old_event.note_number),
-                velocity: event.velocity.unwrap_or(old_event.velocity),
-            };
-            self.store[event_index] = new_event;
+        if let Some(existing_event) = self.store.iter_mut().find(|e| e.id == event.id) {
+            if let Some(start_ticks) = event.start_ticks {
+                existing_event.start_ticks = start_ticks;
+            }
+            if let Some(end_ticks) = event.end_ticks {
+                existing_event.end_ticks = end_ticks;
+            }
+            if let Some(note_number) = event.note_number {
+                existing_event.note_number = note_number;
+            }
+            if let Some(velocity) = event.velocity {
+                existing_event.velocity = velocity;
+            }
         }
     }
 
