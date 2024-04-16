@@ -14,21 +14,6 @@ mod benches {
     use test::Bencher;
 
     #[bench]
-    fn bench_add_event(b: &mut Bencher) {
-        let mut store = VecNoteEventStore::new();
-
-        b.iter(|| {
-            store.add_event(NoteEvent {
-                id: "0".to_string(),
-                start_ticks: 0,
-                end_ticks: 10,
-                note_number: 60,
-                velocity: 100,
-            })
-        });
-    }
-
-    #[bench]
     fn bench_add_events(b: &mut Bencher) {
         let mut store = VecNoteEventStore::new();
 
